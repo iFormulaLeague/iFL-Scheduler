@@ -1,6 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+import datetime
+from datetime import timedelta
 
 
 class Schedule:
@@ -15,7 +17,7 @@ class Schedule:
         return
 
     def extractImage(self, schedule):
-        # Extract event image
+        # Extract event image links only
         imagelink = []
         for race in schedule:
             imagetag = str(race)
@@ -23,6 +25,42 @@ class Schedule:
             imagelink.append(m.group(1))
         # returning imagelink for debugging
         return imagelink
+
+    def extractInfo(self, schedule):
+        # Extract full event info
+        eventinfo = []
+        for race in schedule:
+            event = []
+            # extract cells
+            imagetag = str(race)
+            main = str(race[1])
+            extra = str(race[2])
+
+            # Imagelink from imagetag
+            imagelink = re.search(r'src=\"(.*)\" ', imagetag)
+
+            # Extract date from main
+            racedate_m = re.search(
+                r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', main)
+            racedate = racedate_m.group()
+            date_time_obj = datetime.datetime.strptime(
+                racedate, '%Y-%m-%d %H:%M:%S')
+            # convert from UTC to CST
+            date_time_obj = date_time_obj - timedelta(hours=5)
+
+            # Grand Prix Name from main
+            gp = re.search(r'[A-Z]+ GP', main)
+
+            # Race Length from extra
+            length = re.search(r'Race\sLength:(.*)\n\n\n\n\n', extra)
+
+            # append to list
+            event.append(str(date_time_obj))
+            event.append(gp.group())
+            event.append(length.group(1))
+            event.append(imagelink.group(1))
+            eventinfo.append(event)
+        return eventinfo
 
 
 class Updater:
@@ -32,10 +70,12 @@ class Updater:
 
 # new Schedule object and do things
 schedule = Schedule()
-link = schedule.extractImage(schedule.soup)
+#link = schedule.extractImage(schedule.soup)
+info = schedule.extractInfo(schedule.soup)
 
 # debug output
 # - first race
 # - list of image links
-print(schedule.soup[0])
-print(link)
+# print(schedule.soup[0])
+# print(link)
+print(info)
