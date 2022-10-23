@@ -49,14 +49,14 @@ class Schedule:
             date_time_obj = date_time_obj - timedelta(hours=5)
 
             # Grand Prix Name from main
-            gp = re.search(r'[A-Z]+ GP', main)
+            gp = re.search(r'\n(\w+ GP|\w+ \w+ GP)\n', main)
 
             # Race Length from extra
             length = re.search(r'Race\sLength:(.*)\n\n\n\n\n', extra)
 
             # Append to list
             event.append(str(date_time_obj))
-            event.append(gp.group())
+            event.append(gp.group(1))
             event.append(length.group(1))
             event.append(imagelink.group(1))
             eventinfo.append(event)
