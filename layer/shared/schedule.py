@@ -4,14 +4,14 @@ import re
 
 
 class Schedule:
-    url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
 
     def __init__(self):
         # get schedule page
+        self.url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
         r = requests.get(self.url)
         # parse table to json object
-        self.out = [[cell.text or cell.img for cell in row("td")]
-                    for row in BeautifulSoup(r.text, 'html.parser')("tr")]
+        self.soup = [[cell.text or cell.img for cell in row("td")]
+                     for row in BeautifulSoup(r.text, 'html.parser')("tr")]
         return
 
     def extractImage(self, schedule):
@@ -32,10 +32,10 @@ class Updater:
 
 # new Schedule object and do things
 schedule = Schedule()
-link = schedule.extractImage(schedule.out)
+link = schedule.extractImage(schedule.soup)
 
 # debug output
 # - first race
 # - list of image links
-print(schedule.out[0])
+print(schedule.soup[0])
 print(link)
