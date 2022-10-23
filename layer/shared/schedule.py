@@ -18,7 +18,7 @@ class Schedule:
         # Extract event image
         imagelink = []
         for race in schedule:
-            imagetag = str(race[0])
+            imagetag = str(race)
             m = re.search(r'src=\"(.*)\" ', imagetag)
             imagelink.append(m.group(1))
         # returning imagelink for debugging
