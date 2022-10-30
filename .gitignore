@@ -130,3 +130,7 @@ dmypy.json
 
 # vscode
 .vscode/
+
+# token
+token.json
+credentials.json
