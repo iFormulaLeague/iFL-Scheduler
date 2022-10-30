@@ -22,22 +22,24 @@ class Schedule:
         # Parse table to json object
         self.soup = [[cell.text or cell.img for cell in row("td")]
                      for row in BeautifulSoup(r.text, 'html.parser')("tr")]
+        # extract info from soup
+        self.extract_info()
         return
 
-    def extract_image(self, schedule):
+    def extract_image(self):
         # Extract event image links only
         imagelink = []
-        for race in schedule:
+        for race in self.soup:
             imagetag = str(race)
             m = re.search(r'src=\"(.*)\" ', imagetag)
             imagelink.append(m.group(1))
         # Returning imagelink for debugging
         return imagelink
 
-    def extract_info(self, schedule):
+    def extract_info(self):
         # Extract full event info
-        eventinfo = []
-        for race in schedule:
+        self.eventinfo = []
+        for race in self.soup:
             event = []
             # Categorize cells
             imagetag = str(race)
@@ -67,14 +69,13 @@ class Schedule:
             event.append(gp.group(1))
             event.append(length.group(1))
             event.append(imagelink.group(1))
-            eventinfo.append(event)
-        return eventinfo
+            self.eventinfo.append(event)
+        return
 
-    def get_gcal_events(self, starttime):
-        """Shows basic usage of the Google Calendar API.
-        Prints the start and name of the next 10 events on the user's calendar.
-        """
+    def get_gcal_events(self):
+        # Prints the start and name of the season's events on the iFL AM calendar.
         creds = None
+        self.seasonstart = self.eventinfo[0][0]
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
@@ -97,10 +98,10 @@ class Schedule:
             service = build('calendar', 'v3', credentials=creds)
             # Call the Calendar API
             # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-            starttime = datetime.datetime.isoformat(starttime) + 'Z'
+            seasonstart = datetime.datetime.isoformat(self.seasonstart) + 'Z'
             print('Getting events from Season Start')
             events_result = service.events().list(calendarId='s1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com',
-                                                  timeMin=starttime, singleEvents=True, orderBy='startTime').execute()
+                                                  timeMin=seasonstart, singleEvents=True, orderBy='startTime').execute()
             events = events_result.get('items', [])
             if not events:
                 print('No upcoming events found.')
@@ -125,12 +126,10 @@ class Updater:
 
 # New Schedule object and do things
 schedule = Schedule()
-info = schedule.extract_info(schedule.soup)
 
 # Debug output
 # - Full event info
 # - Season GCalendar events
-print(info)
+print(schedule.eventinfo)
 print("\r")
-starttime = info[0][0]
-schedule.get_gcal_events(starttime)
+schedule.get_gcal_events()
