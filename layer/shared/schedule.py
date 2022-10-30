@@ -126,15 +126,11 @@ class Updater:
 
 # New Schedule object and do things
 schedule = Schedule()
-# link = schedule.extractImage(schedule.soup)
 info = schedule.extract_info(schedule.soup)
 
 # Debug output
-# - First race
-# - List of image links
 # - Full event info
-# print(schedule.soup[0])
-# print(link)
+# - Season GCalendar events
 print(info)
 print("\r")
 starttime = info[0][0]
