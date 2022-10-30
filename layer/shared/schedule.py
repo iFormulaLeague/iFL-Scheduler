@@ -99,9 +99,8 @@ class Schedule:
             # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
             starttime = datetime.datetime.isoformat(starttime) + 'Z'
             print('Getting events from Season Start')
-            events_result = service.events().list(calendarId='s1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com', timeMin=starttime,
-                                                  maxResults=10, singleEvents=True,
-                                                  orderBy='startTime').execute()
+            events_result = service.events().list(calendarId='s1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com',
+                                                  timeMin=starttime, singleEvents=True, orderBy='startTime').execute()
             events = events_result.get('items', [])
             if not events:
                 print('No upcoming events found.')
