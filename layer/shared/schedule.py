@@ -130,6 +130,5 @@ schedule = Schedule()
 # Debug output
 # - Full event info
 # - Season GCalendar events
-print(schedule.eventinfo)
-print("\r")
+print(schedule.eventinfo, '\n')
 schedule.get_gcal_events()
