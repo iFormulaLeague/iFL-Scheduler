@@ -17,8 +17,8 @@ class Schedule:
         # GCal Scopes
         self.SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
         # Get schedule page
-        self.url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
-        r = requests.get(self.url)
+        self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
+        r = requests.get(self.xs_url)
         # Parse table to json object
         self.soup = [[cell.text or cell.img for cell in row("td")]
                      for row in BeautifulSoup(r.text, 'html.parser')("tr")]
