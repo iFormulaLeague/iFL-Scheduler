@@ -56,7 +56,7 @@ class Schedule:
             date_time_obj = datetime.datetime.strptime(
                 racedate, '%Y-%m-%d %H:%M:%S')
             # Convert from UTC to CST
-            date_time_obj = date_time_obj - timedelta(hours=5)
+            #date_time_obj = date_time_obj - timedelta(hours=5)
 
             # Grand Prix Name from main
             gp = re.search(r'\n(\w+ GP|\w+ \w+ GP)\n', main)
@@ -65,14 +65,14 @@ class Schedule:
             length = re.search(r'Race\sLength:(.*)\n\n\n\n\n', extra)
 
             # Append to list
-            event.append(str(date_time_obj))
+            event.append(date_time_obj)
             event.append(gp.group(1))
             event.append(length.group(1))
             event.append(imagelink.group(1))
             eventinfo.append(event)
         return eventinfo
 
-    def upcoming_gcal_events(self):
+    def get_gcal_events(self, starttime):
         """Shows basic usage of the Google Calendar API.
         Prints the start and name of the next 10 events on the user's calendar.
         """
@@ -98,9 +98,10 @@ class Schedule:
         try:
             service = build('calendar', 'v3', credentials=creds)
             # Call the Calendar API
-            now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-            print('Getting the upcoming 10 events')
-            events_result = service.events().list(calendarId='s1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com', timeMin=now,
+            # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+            starttime = datetime.datetime.isoformat(starttime) + 'Z'
+            print('Getting events from Season Start')
+            events_result = service.events().list(calendarId='s1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com', timeMin=starttime,
                                                   maxResults=10, singleEvents=True,
                                                   orderBy='startTime').execute()
             events = events_result.get('items', [])
@@ -110,7 +111,7 @@ class Schedule:
                 calendars = calendar_list.get('items', [])
                 print(calendars)
                 return
-            # Prints the start and name of the next 10 events
+            # Prints the start and name of the events
             for event in events:
                 start = event['start'].get(
                     'dateTime', event['start'].get('date'))
@@ -137,4 +138,6 @@ info = schedule.extract_info(schedule.soup)
 # print(schedule.soup[0])
 # print(link)
 print(info)
-schedule.upcoming_gcal_events()
+print("\r")
+starttime = info[0][0]
+schedule.get_gcal_events(starttime)
