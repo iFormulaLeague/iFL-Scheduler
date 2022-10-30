@@ -2,8 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import datetime
-from datetime import timedelta
-import datetime
 import os.path
 
 from google.auth.transport.requests import Request
