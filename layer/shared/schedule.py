@@ -28,33 +28,33 @@ class Schedule:
 
     def extract_image(self):
         # Extract event image links only
-        imagelink = []
+        image_link = []
         for race in self.soup:
-            imagetag = str(race)
-            m = re.search(r'src=\"(.*)\" ', imagetag)
-            imagelink.append(m.group(1))
-        # Returning imagelink for debugging
-        return imagelink
+            image_tag = str(race)
+            m = re.search(r'src=\"(.*)\" ', image_tag)
+            image_link.append(m.group(1))
+        # Returning image_link for debugging
+        return image_link
 
     def extract_info(self):
         # Extract full event info
-        self.eventinfo = []
+        self.event_info = []
         for race in self.soup:
             event = []
             # Categorize cells
-            imagetag = str(race)
+            image_tag = str(race)
             main = str(race[1])
             extra = str(race[2])
 
-            # Imagelink from imagetag
-            imagelink = re.search(r'src=\"(.*)\" ', imagetag)
+            # Imagelink from image_tag
+            image_link = re.search(r'src=\"(.*)\" ', image_tag)
 
             # Extract date from main
-            racedate_m = re.search(
+            race_date_m = re.search(
                 r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', main)
-            racedate = racedate_m.group()
+            race_date = race_date_m.group()
             date_time_obj = datetime.datetime.strptime(
-                racedate, '%Y-%m-%d %H:%M:%S')
+                race_date, '%Y-%m-%d %H:%M:%S')
             # Convert from UTC to CST
             #date_time_obj = date_time_obj - timedelta(hours=5)
 
@@ -68,14 +68,14 @@ class Schedule:
             event.append(date_time_obj)
             event.append(gp.group(1))
             event.append(length.group(1))
-            event.append(imagelink.group(1))
-            self.eventinfo.append(event)
+            event.append(image_link.group(1))
+            self.event_info.append(event)
         return
 
     def get_gcal_events(self):
         # Prints the start and name of the season's events on the iFL AM calendar.
         creds = None
-        self.seasonstart = self.eventinfo[0][0]
+        self.seasonstart = self.event_info[0][0]
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
@@ -130,5 +130,5 @@ schedule = Schedule()
 # Debug output
 # - Full event info
 # - Season GCalendar events
-print(schedule.eventinfo, '\n')
+print(schedule.event_info, '\n')
 schedule.get_gcal_events()
