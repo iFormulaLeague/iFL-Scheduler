@@ -36,7 +36,7 @@ class Schedule:
             main = str(race[1])
             extra = str(race[2])
 
-            # Imagelink from image_tag
+            # image_link from image_tag
             image_link = re.search(r'src=\"(.*)\" ', image_tag)
 
             # Extract date from main
@@ -48,8 +48,11 @@ class Schedule:
             # Convert from UTC to CST
             #date_time_obj = date_time_obj - timedelta(hours=5)
 
-            # Grand Prix Name from main
+            # Grand Prix name from main
             gp = re.search(r'\n(\w+ GP|\w+ \w+ GP)\n', main)
+
+            # Circuit name from main
+            circuit = re.search(r'GP\n(.*?)\n', main)
 
             # Race Length from extra
             length = re.search(r'Race\sLength:(.*)\n\n\n\n\n', extra)
@@ -57,6 +60,7 @@ class Schedule:
             # Append to list
             event.append(date_time_obj)
             event.append(gp.group(1))
+            event.append(circuit.group(1))
             event.append(length.group(1))
             event.append(image_link.group(1))
             self.event_info.append(event)
