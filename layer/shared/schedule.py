@@ -24,7 +24,6 @@ class Schedule:
                      for row in BeautifulSoup(r.text, 'html.parser')("tr")]
         # extract info from soup
         self.extract_info()
-        return
 
     def extract_info(self):
         # Extract full event info
@@ -64,7 +63,6 @@ class Schedule:
             event.append(length.group(1))
             event.append(image_link.group(1))
             self.event_info.append(event)
-        return
 
     def auth_gcal(self):
         # Prints the start and name of the season's events on the iFL AM calendar.
@@ -107,6 +105,7 @@ class Schedule:
                 calendars = calendar_list.get('items', [])
                 print(calendars)
                 return
+            self.gcal_events = events
             # Prints the start and name of the events
             for event in events:
                 start = event['start'].get(
@@ -116,10 +115,13 @@ class Schedule:
         except HttpError as error:
             print('An error occurred: %s' % error)
 
+    def compare_schedules(self):
+        # Iterate through event_info and gcal_events to find disparities
+        return
 
-class Updater:
-    def update():
-        return 0
+    def put_gcal_events(self):
+        # create and push new events to google calendar
+        return
 
 
 # New Schedule object and do things
