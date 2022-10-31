@@ -15,7 +15,7 @@ class Schedule:
 
     def __init__(self):
         # GCal Scopes
-        self.SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+        self.SCOPES = ['https://www.googleapis.com/auth/calendar']
         # Get schedule page
         self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
         r = requests.get(self.xs_url)
