@@ -198,11 +198,6 @@ class Schedule:
 
 # New Schedule object and do things
 schedule = Schedule()
-# Debug output
-# - Full event info
-# - Season GCalendar events
-#print(schedule.event_info, '\n')
 schedule.get_gcal_events()
-# print(schedule.gcal_events)
 schedule.compare_schedules()
 print('Events needing an update:', schedule.events_to_update)
