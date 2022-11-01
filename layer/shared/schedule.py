@@ -106,6 +106,7 @@ class Schedule:
                 calendars = calendar_list.get('items', [])
                 print(calendars)
                 return
+            self.gcal_events_raw = races
             self.gcal_events = []
             # Prints the start and name of the events
             for race in races:
