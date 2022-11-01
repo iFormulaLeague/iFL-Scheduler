@@ -23,6 +23,8 @@ class Schedule:
         # Parse table to json object
         self.soup = [[cell.text or cell.img for cell in row("td")]
                      for row in BeautifulSoup(r.text, 'html.parser')("tr")]
+        # Init list of events needing to be updated
+        self.events_to_update = []
         # extract info from soup
         self.extract_info()
 
@@ -131,6 +133,7 @@ class Schedule:
         # Iterate through event_info and gcal_events to find disparities
         count = 0
         for x_race in self.event_info:
+            failed = 0
             # Match date string formats and account for timezone offset
             tz_offset = re.search(r'-\d(\d?):', self.gcal_events[count][0])
             tz_offset = tz_offset.group(1)
@@ -142,14 +145,16 @@ class Schedule:
                 print('ITERATION: ', count, ' ', newtime,
                       ' MATCHES ', self.gcal_events[count][0])
             else:
-                print('oopsie')
+                print('ITERATION: ', count, ' FAIL ', newtime)
+                failed = 1
 
             # Check for GP name
             if x_race[1].lower() in self.gcal_events[count][2].lower():
                 print('ITERATION: ', count, ' ',
                       x_race[1], ' MATCHES ', self.gcal_events[count][2])
             else:
-                print(x_race[1].lower())
+                print('ITERATION: ', count, ' FAIL ', x_race[1].lower())
+                failed = 1
 
             # Check locations match
             if x_race[2].lower() in self.gcal_events[count][4].lower():
@@ -157,6 +162,7 @@ class Schedule:
                       x_race[2], ' MATCHES ', self.gcal_events[count][4])
             else:
                 print('ITERATION: ', count, ' FAIL ', x_race[2].lower())
+                failed = 1
 
             # Check race lengths match
             if x_race[3].lower() in self.gcal_events[count][3].lower():
@@ -164,6 +170,7 @@ class Schedule:
                       x_race[3], ' MATCHES ', self.gcal_events[count][4])
             else:
                 print('ITERATION: ', count, ' FAIL ', x_race[3].lower())
+                failed = 1
 
             # Check images match
             if x_race[4].lower() in self.gcal_events[count][3].lower():
@@ -171,11 +178,21 @@ class Schedule:
                       x_race[4], ' MATCHES ', self.gcal_events[count][3])
             else:
                 print('ITERATION: ', count, ' FAIL ', x_race[4].lower())
+                failed = 1
+
+            # Add to list of races that don't match, in other words where the Google Calendar is not up-to-date.
+            if failed:
+                self.events_to_update.append(count)
+
             count += 1
         return
 
+    def build_gcal_event(self):
+        # Create Gcalendar events
+        return
+
     def put_gcal_events(self):
-        # create and push new events to google calendar
+        # push new events to google calendar
         return
 
 
@@ -188,3 +205,4 @@ schedule = Schedule()
 schedule.get_gcal_events()
 # print(schedule.gcal_events)
 schedule.compare_schedules()
+print('Events needing an update:', schedule.events_to_update)
