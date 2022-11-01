@@ -188,11 +188,15 @@ class Schedule:
         return
 
     def build_gcal_event(self):
-        # Create Gcalendar events
+        # Assemble Google Calendar events from XtremeScoring schedule information
         return
 
-    def put_gcal_events(self):
-        # push new events to google calendar
+    def update_gcal_events(self):
+        # Update Google calendar events
+        return
+
+    def create_gcal_events(self):
+        # Create Google calendar events
         return
 
 
