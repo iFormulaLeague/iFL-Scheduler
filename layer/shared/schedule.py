@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import datetime
+from datetime import timedelta
 import os.path
 
 from google.auth.transport.requests import Request
@@ -15,7 +16,7 @@ class Schedule:
 
     def __init__(self):
         # GCal Scopes
-        self.SCOPES = ['https://www.googleapis.com/auth/calendar']
+        self.SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
         # Get schedule page
         self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
         r = requests.get(self.xs_url)
@@ -45,7 +46,7 @@ class Schedule:
             date_time_obj = datetime.datetime.strptime(
                 race_date, '%Y-%m-%d %H:%M:%S')
             # Convert from UTC to CST
-            #date_time_obj = date_time_obj - timedelta(hours=5)
+            # date_time_obj = date_time_obj - timedelta(hours=5)
 
             # Grand Prix name from main
             gp = re.search(r'\n(\w+ GP|\w+ \w+ GP)\n', main)
@@ -98,25 +99,78 @@ class Schedule:
             print('Getting events from Season Start')
             events_result = service.events().list(calendarId='s1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com',
                                                   timeMin=seasonstart, singleEvents=True, orderBy='startTime').execute()
-            events = events_result.get('items', [])
-            if not events:
+            races = events_result.get('items', [])
+            if not races:
                 print('No upcoming events found.')
                 calendar_list = service.calendarList().list().execute()
                 calendars = calendar_list.get('items', [])
                 print(calendars)
                 return
-            self.gcal_events = events
+            self.gcal_events = []
             # Prints the start and name of the events
-            for event in events:
-                start = event['start'].get(
-                    'dateTime', event['start'].get('date'))
-                print(start, event['summary'])
+            for race in races:
+                event = []
+                start = race['start'].get(
+                    'dateTime')
+                end = race['end'].get('dateTime', race['end'].get('date'))
+                summary = race['summary']
+                description = race['description']
+                location = race['location']
+                event.append(start)
+                event.append(end)
+                event.append(summary)
+                event.append(description)
+                event.append(location)
+                self.gcal_events.append(event)
 
         except HttpError as error:
             print('An error occurred: %s' % error)
 
     def compare_schedules(self):
         # Iterate through event_info and gcal_events to find disparities
+        count = 0
+        for x_race in self.event_info:
+            # Match date string formats and account for timezone offset
+            tz_offset = re.search(r'-\d(\d?):', self.gcal_events[count][0])
+            tz_offset = tz_offset.group(1)
+            newtime = x_race[0] - timedelta(hours=int(tz_offset))
+            newtime = str(newtime).replace(' ', 'T')
+            newtime = newtime + '-0' + str(tz_offset) + ':00'
+            # Compare time strings
+            if newtime == self.gcal_events[count][0]:
+                print('ITERATION: ', count, ' ', newtime,
+                      ' MATCHES ', self.gcal_events[count][0])
+            else:
+                print('oopsie')
+
+            # Check for GP name
+            if x_race[1].lower() in self.gcal_events[count][2].lower():
+                print('ITERATION: ', count, ' ',
+                      x_race[1], ' MATCHES ', self.gcal_events[count][2])
+            else:
+                print(x_race[1].lower())
+
+            # Check locations match
+            if x_race[2].lower() in self.gcal_events[count][4].lower():
+                print('ITERATION: ', count, ' ',
+                      x_race[2], ' MATCHES ', self.gcal_events[count][4])
+            else:
+                print('ITERATION: ', count, ' FAIL ', x_race[2].lower())
+
+            # Check race lengths match
+            if x_race[3].lower() in self.gcal_events[count][3].lower():
+                print('ITERATION: ', count, ' ',
+                      x_race[3], ' MATCHES ', self.gcal_events[count][4])
+            else:
+                print('ITERATION: ', count, ' FAIL ', x_race[3].lower())
+
+            # Check images match
+            if x_race[4].lower() in self.gcal_events[count][3].lower():
+                print('ITERATION: ', count, ' ',
+                      x_race[4], ' MATCHES ', self.gcal_events[count][3])
+            else:
+                print('ITERATION: ', count, ' FAIL ', x_race[4].lower())
+            count += 1
         return
 
     def put_gcal_events(self):
@@ -126,9 +180,10 @@ class Schedule:
 
 # New Schedule object and do things
 schedule = Schedule()
-
 # Debug output
 # - Full event info
 # - Season GCalendar events
-print(schedule.event_info, '\n')
+#print(schedule.event_info, '\n')
 schedule.get_gcal_events()
+# print(schedule.gcal_events)
+schedule.compare_schedules()
