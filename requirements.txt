@@ -1,6 +1,5 @@
 requests
 bs4
-re
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
