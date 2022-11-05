@@ -225,9 +225,6 @@ class Schedule:
             updated_event = service.events().update(
                 calendarId=self.calendar_id, eventId=existing_event['id'], body=event[race]).execute()
 
-        # Print the updated date.
-        # print(updated_event['updated'])
-
     def create_gcal_events(self):
         # Create Google calendar events
         # Build an event
