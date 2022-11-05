@@ -230,11 +230,12 @@ class Schedule:
         # Create Google calendar events
         # Build an event
         event = self.build_gcal_events()
-        # Create a gcal event
-        service = build('calendar', 'v3', credentials=self.creds)
-        event = service.events().insert(calendarId=self.calendar_id, body=event).execute()
-        print('Event created: %s' % (event.get('htmlLink')))
-        return
+        for index in range(len(event)):
+            # Create a gcal event
+            service = build('calendar', 'v3', credentials=self.creds)
+            event = service.events().insert(
+                calendarId=self.calendar_id, body=event[index]).execute()
+            print('Event created: %s' % (event.get('htmlLink')))
 
 
 # New Schedule object and do things
