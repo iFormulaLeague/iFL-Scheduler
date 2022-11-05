@@ -20,6 +20,7 @@ class Schedule:
                        'https://www.googleapis.com/auth/calendar']
         self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
         # Get schedule page
+        # This must be changed manually if a new series is established
         self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
         r = requests.get(self.xs_url)
         # Parse table to json object
@@ -51,7 +52,8 @@ class Schedule:
                 race_date, '%Y-%m-%d %H:%M:%S')
             my_tz = pytz.timezone('America/Chicago')
             good_dt = my_tz.localize(date_time_obj)
-            #good_dt = good_dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+            offset = int(good_dt.strftime('%z')) / 100
+            good_dt = good_dt + timedelta(hours=offset)
 
             # Grand Prix name from main
             gp = re.search(r'\n(\w+ GP|\w+ \w+ GP)\n', main)
@@ -99,12 +101,7 @@ class Schedule:
         try:
             # Call the Calendar API
             # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-            tz = pytz.timezone('UTC')
-            offset = int(self.event_info[0][0].strftime('%z')) / 100
-            seasonstart = self.event_info[0][0].astimezone(tz)
-            seasonstart = seasonstart + timedelta(hours=offset)
-            seasonstart = seasonstart.strftime('%Y-%m-%dT%H:%M:%SZ')
-            print(seasonstart)
+            seasonstart = self.event_info[0][0].strftime('%Y-%m-%dT%H:%M:%SZ')
             print('Getting events from Season Start')
             events_result = service.events().list(calendarId=self.calendar_id,
                                                   timeMin=seasonstart, singleEvents=True, orderBy='startTime').execute()
@@ -143,11 +140,10 @@ class Schedule:
         for x_race in self.event_info:
             times = []
             failed = 0
-            # Match date string formats and account for timezone offset
-            offset = int(self.event_info[count][0].strftime('%z')) / 100
-            newtime = x_race[0] + timedelta(hours=int(offset))
-            endtime = newtime + timedelta(hours=2.5)
-            newtime = newtime.isoformat()
+            # Match date string formats
+            # endtime timedelta must be adjusted manually based on series event duration
+            endtime = x_race[0] + timedelta(hours=2.5)
+            newtime = x_race[0].isoformat()
             endtime = endtime.isoformat()
             times.append(newtime)
             times.append(endtime)
