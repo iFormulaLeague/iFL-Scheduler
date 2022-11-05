@@ -15,9 +15,8 @@ from googleapiclient.errors import HttpError
 class Schedule:
 
     def __init__(self):
-        # GCal Scopes
-        self.SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
         # Get schedule page
+        self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
         self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
         r = requests.get(self.xs_url)
         # Parse table to json object
@@ -47,8 +46,6 @@ class Schedule:
             race_date = race_date_m.group()
             date_time_obj = datetime.datetime.strptime(
                 race_date, '%Y-%m-%d %H:%M:%S')
-            # Convert from UTC to CST
-            # date_time_obj = date_time_obj - timedelta(hours=5)
 
             # Grand Prix name from main
             gp = re.search(r'\n(\w+ GP|\w+ \w+ GP)\n', main)
@@ -67,7 +64,7 @@ class Schedule:
             event.append(image_link.group(1))
             self.event_info.append(event)
 
-    def auth_gcal(self):
+    def auth_gcal(self, SCOPES):
         # Prints the start and name of the season's events on the iFL AM calendar.
         creds = None
         self.seasonstart = self.event_info[0][0]
@@ -76,14 +73,14 @@ class Schedule:
         # time.
         if os.path.exists('token.json'):
             creds = Credentials.from_authorized_user_file(
-                'token.json', self.SCOPES)
+                'token.json', SCOPES)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', self.SCOPES)
+                    'credentials.json', SCOPES)
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open('token.json', 'w') as token:
@@ -92,14 +89,15 @@ class Schedule:
         self.creds = creds
 
     def get_gcal_events(self):
-        self.auth_gcal()
+        self.auth_gcal(
+            SCOPES=['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/calendar'])
+        service = build('calendar', 'v3', credentials=self.creds)
         try:
-            service = build('calendar', 'v3', credentials=self.creds)
             # Call the Calendar API
             # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
             seasonstart = datetime.datetime.isoformat(self.seasonstart) + 'Z'
             print('Getting events from Season Start')
-            events_result = service.events().list(calendarId='s1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com',
+            events_result = service.events().list(calendarId=self.calendar_id,
                                                   timeMin=seasonstart, singleEvents=True, orderBy='startTime').execute()
             races = events_result.get('items', [])
             if not races:
@@ -110,7 +108,7 @@ class Schedule:
                 return
             self.gcal_events_raw = races
             self.gcal_events = []
-            # Prints the start and name of the events
+            # Create a list of lists of event data matching the format from the scraped XtremeScoring schedule
             for race in races:
                 event = []
                 start = race['start'].get(
@@ -132,14 +130,24 @@ class Schedule:
     def compare_schedules(self):
         # Iterate through event_info and gcal_events to find disparities
         count = 0
+        self.times_iso = []
         for x_race in self.event_info:
+            times = []
             failed = 0
             # Match date string formats and account for timezone offset
             tz_offset = re.search(r'-\d(\d?):', self.gcal_events[count][0])
             tz_offset = tz_offset.group(1)
             newtime = x_race[0] - timedelta(hours=int(tz_offset))
+            endtime = newtime + timedelta(hours=2.5)
+            print(endtime, '\n', newtime)
+            # Force iso format - string manipulation is super hacky...
             newtime = str(newtime).replace(' ', 'T')
             newtime = newtime + '-0' + str(tz_offset) + ':00'
+            endtime = str(endtime).replace(' ', 'T')
+            endtime = endtime + '-0' + str(tz_offset) + ':00'
+            times.append(newtime)
+            times.append(endtime)
+            self.times_iso.append(times)
             # Compare time strings
             if newtime == self.gcal_events[count][0]:
                 print('ITERATION: ', count, ' ', newtime,
@@ -187,16 +195,57 @@ class Schedule:
             count += 1
         return
 
-    def build_gcal_event(self):
+    def build_gcal_events(self):
         # Assemble Google Calendar events from XtremeScoring schedule information
-        return
+        events = []
+        for race in self.events_to_update:
+            racenumber = str(race + 1)
+            summary = 'iFL AM - Round ' + \
+                racenumber + ' - ' + self.event_info[race][1]
+            location = self.event_info[race][2]
+            description = '+++<br>cover=" <a href="' + self.event_info[race][4] + '">' + self.event_info[race][4] + '</a>  "<br>+++<br><br>Round ' + \
+                racenumber + ' of the iFL AM Championship<br>' + \
+                self.event_info[race][3] + '<br><html-blob><u></u></html-blob>'
+            event = {
+                'summary': summary,
+                'location': location,
+                'description': description,
+                'start': {
+                    'dateTime': self.times_iso[race][0],
+                    'timeZone': 'UTC',
+                },
+                'end': {
+                    'dateTime': self.times_iso[race][1],
+                    'timeZone': 'UTC',
+                },
+            }
+            events.append(event)
+        return events
 
     def update_gcal_events(self):
         # Update Google calendar events
-        return
+        # Build new event
+        event = self.build_gcal_events()
+        for race in self.events_to_update:
+            # Get existing event
+            existing_event = self.gcal_events_raw[self.events_to_update[race]]
+            print(existing_event)
+            # Push Update
+            service = build('calendar', 'v3', credentials=self.creds)
+            updated_event = service.events().update(
+                calendarId=self.calendar_id, eventId=existing_event['id'], body=event[race]).execute()
+
+        # Print the updated date.
+        # print(updated_event['updated'])
 
     def create_gcal_events(self):
         # Create Google calendar events
+        # Build an event
+        event = self.build_gcal_events()
+        # Create a gcal event
+        service = build('calendar', 'v3', credentials=self.creds)
+        event = service.events().insert(calendarId=self.calendar_id, body=event).execute()
+        print('Event created: %s' % (event.get('htmlLink')))
         return
 
 
@@ -205,3 +254,4 @@ schedule = Schedule()
 schedule.get_gcal_events()
 schedule.compare_schedules()
 print('Events needing an update:', schedule.events_to_update)
+schedule.update_gcal_events()
