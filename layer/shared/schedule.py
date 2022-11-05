@@ -15,8 +15,10 @@ from googleapiclient.errors import HttpError
 class Schedule:
 
     def __init__(self):
-        # Get schedule page
+        self.SCOPES = ['https://www.googleapis.com/auth/calendar.readonly',
+                       'https://www.googleapis.com/auth/calendar']
         self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
+        # Get schedule page
         self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
         r = requests.get(self.xs_url)
         # Parse table to json object
@@ -64,7 +66,7 @@ class Schedule:
             event.append(image_link.group(1))
             self.event_info.append(event)
 
-    def auth_gcal(self, SCOPES):
+    def auth_gcal(self):
         # Prints the start and name of the season's events on the iFL AM calendar.
         creds = None
         self.seasonstart = self.event_info[0][0]
@@ -73,14 +75,14 @@ class Schedule:
         # time.
         if os.path.exists('token.json'):
             creds = Credentials.from_authorized_user_file(
-                'token.json', SCOPES)
+                'token.json', self.SCOPES)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', SCOPES)
+                    'credentials.json', self.SCOPES)
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open('token.json', 'w') as token:
@@ -89,8 +91,7 @@ class Schedule:
         self.creds = creds
 
     def get_gcal_events(self):
-        self.auth_gcal(
-            SCOPES=['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/calendar'])
+        self.auth_gcal()
         service = build('calendar', 'v3', credentials=self.creds)
         try:
             # Call the Calendar API
@@ -139,7 +140,6 @@ class Schedule:
             tz_offset = tz_offset.group(1)
             newtime = x_race[0] - timedelta(hours=int(tz_offset))
             endtime = newtime + timedelta(hours=2.5)
-            print(endtime, '\n', newtime)
             # Force iso format - string manipulation is super hacky...
             newtime = str(newtime).replace(' ', 'T')
             newtime = newtime + '-0' + str(tz_offset) + ':00'
@@ -149,43 +149,28 @@ class Schedule:
             times.append(endtime)
             self.times_iso.append(times)
             # Compare time strings
-            if newtime == self.gcal_events[count][0]:
-                print('ITERATION: ', count, ' ', newtime,
-                      ' MATCHES ', self.gcal_events[count][0])
-            else:
-                print('ITERATION: ', count, ' FAIL ', newtime)
+            if newtime != self.gcal_events[count][0]:
+                print('ITERATION: ', count, ' UPDATE ', newtime)
                 failed = 1
 
             # Check for GP name
-            if x_race[1].lower() in self.gcal_events[count][2].lower():
-                print('ITERATION: ', count, ' ',
-                      x_race[1], ' MATCHES ', self.gcal_events[count][2])
-            else:
-                print('ITERATION: ', count, ' FAIL ', x_race[1].lower())
+            if x_race[1].lower() not in self.gcal_events[count][2].lower():
+                print('ITERATION: ', count, ' UPDATE ', x_race[1].lower())
                 failed = 1
 
             # Check locations match
-            if x_race[2].lower() in self.gcal_events[count][4].lower():
-                print('ITERATION: ', count, ' ',
-                      x_race[2], ' MATCHES ', self.gcal_events[count][4])
-            else:
-                print('ITERATION: ', count, ' FAIL ', x_race[2].lower())
+            if x_race[2].lower() not in self.gcal_events[count][4].lower():
+                print('ITERATION: ', count, ' UPDATE ', x_race[2].lower())
                 failed = 1
 
             # Check race lengths match
-            if x_race[3].lower() in self.gcal_events[count][3].lower():
-                print('ITERATION: ', count, ' ',
-                      x_race[3], ' MATCHES ', self.gcal_events[count][4])
-            else:
-                print('ITERATION: ', count, ' FAIL ', x_race[3].lower())
+            if x_race[3].lower() not in self.gcal_events[count][3].lower():
+                print('ITERATION: ', count, ' UPDATE ', x_race[3].lower())
                 failed = 1
 
             # Check images match
-            if x_race[4].lower() in self.gcal_events[count][3].lower():
-                print('ITERATION: ', count, ' ',
-                      x_race[4], ' MATCHES ', self.gcal_events[count][3])
-            else:
-                print('ITERATION: ', count, ' FAIL ', x_race[4].lower())
+            if x_race[4].lower() not in self.gcal_events[count][3].lower():
+                print('ITERATION: ', count, ' UPDATE ', x_race[4].lower())
                 failed = 1
 
             # Add to list of races that don't match, in other words where the Google Calendar is not up-to-date.
@@ -193,7 +178,12 @@ class Schedule:
                 self.events_to_update.append(count)
 
             count += 1
-        return
+
+        if self.events_to_update:
+            print('Events needing an update: ', self.events_to_update)
+            self.update_gcal_events()
+        else:
+            print('No events needing an update.')
 
     def build_gcal_events(self):
         # Assemble Google Calendar events from XtremeScoring schedule information
@@ -252,6 +242,7 @@ class Schedule:
 # New Schedule object and do things
 schedule = Schedule()
 schedule.get_gcal_events()
-schedule.compare_schedules()
-print('Events needing an update:', schedule.events_to_update)
-schedule.update_gcal_events()
+if schedule.gcal_events:
+    schedule.compare_schedules()
+else:
+    schedule.create_gcal_events()
