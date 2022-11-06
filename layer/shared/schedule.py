@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import re
 import datetime
 from datetime import timedelta
+from dateutil import parser
 import os.path
 import pytz
 
@@ -19,6 +20,7 @@ class Schedule:
         self.SCOPES = ['https://www.googleapis.com/auth/calendar.readonly',
                        'https://www.googleapis.com/auth/calendar']
         self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
+        self.UTC_tz = pytz.timezone('UTC')
         # Get schedule page
         # This must be changed manually if a new series is established
         self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
@@ -44,16 +46,13 @@ class Schedule:
             # image_link from image_tag
             image_link = re.search(r'src=\"(.*)\" ', image_tag)
 
-            # Extract date from main
+            # Extract date from main and convert UTC timezone
             race_date_m = re.search(
                 r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', main)
             race_date = race_date_m.group()
             date_time_obj = datetime.datetime.strptime(
                 race_date, '%Y-%m-%d %H:%M:%S')
-            my_tz = pytz.timezone('America/Chicago')
-            good_dt = my_tz.localize(date_time_obj)
-            offset = int(good_dt.strftime('%z')) / 100
-            good_dt = good_dt + timedelta(hours=offset)
+            utc_dt = self.UTC_tz.localize(date_time_obj)
 
             # Grand Prix name from main
             gp = re.search(r'\n(\w+ GP|\w+ \w+ GP)\n', main)
@@ -65,7 +64,7 @@ class Schedule:
             length = re.search(r'Race\sLength:(.*)\n\n\n\n\n', extra)
 
             # Append to list
-            event.append(good_dt)
+            event.append(utc_dt)
             event.append(gp.group(1))
             event.append(circuit.group(1))
             event.append(length.group(1))
@@ -106,6 +105,7 @@ class Schedule:
             events_result = service.events().list(calendarId=self.calendar_id,
                                                   timeMin=seasonstart, singleEvents=True, orderBy='startTime').execute()
             races = events_result.get('items', [])
+            # List calendars if no events found
             if not races:
                 print('No upcoming events found.')
                 calendar_list = service.calendarList().list().execute()
@@ -117,9 +117,15 @@ class Schedule:
             # Create a list of lists of event data matching the format from the scraped XtremeScoring schedule
             for race in races:
                 event = []
+                # Parse datetimes and convert to UTC isoformat
                 start = race['start'].get(
                     'dateTime')
+                start = parser.parse(start)
+                start = start.astimezone(self.UTC_tz).isoformat()
                 end = race['end'].get('dateTime', race['end'].get('date'))
+                end = parser.parse(end)
+                end = end.astimezone(self.UTC_tz).isoformat()
+                # Parse remaining text
                 summary = race['summary']
                 description = race['description']
                 location = race['location']
@@ -140,8 +146,9 @@ class Schedule:
         for x_race in self.event_info:
             times = []
             failed = 0
-            # Match date string formats
-            # endtime timedelta must be adjusted manually based on series event duration
+            # Derive endtime and convert to isoformat
+            # endtime timedelta must be adjusted manually based on series event duration.
+            # This is a limitation due to data availablility from the detailed schedule view in XS.
             endtime = x_race[0] + timedelta(hours=2.5)
             newtime = x_race[0].isoformat()
             endtime = endtime.isoformat()
