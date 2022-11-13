@@ -201,7 +201,7 @@ class Schedule:
             summary = 'iFL AM - Round ' + \
                 racenumber + ' - ' + self.event_info[race][1]
             location = self.event_info[race][2]
-            description = '+++<br>cover=" <a href="' + self.event_info[race][4] + '">' + self.event_info[race][4] + '</a>  "<br>+++<br><br>Round ' + \
+            description = '+++<br>cover="<a href="' + self.event_info[race][4] + '">' + self.event_info[race][4] + '</a>"<br>+++<br><br>Round ' + \
                 racenumber + ' of the iFL AM Championship<br>' + \
                 self.event_info[race][3] + '<br><html-blob><u></u></html-blob>'
             event = {
