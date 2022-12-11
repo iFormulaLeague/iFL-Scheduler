@@ -266,6 +266,7 @@ try:
 except AttributeError:
     schedule.create_gcal_events()
 
+# Create a schedule object for a second series.
 schedule = Schedule('F1')
 schedule.get_gcal_events()
 try:
