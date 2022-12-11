@@ -16,14 +16,24 @@ from googleapiclient.errors import HttpError
 
 class Schedule:
 
-    def __init__(self):
+    def __init__(self, series):
         self.SCOPES = ['https://www.googleapis.com/auth/calendar.readonly',
                        'https://www.googleapis.com/auth/calendar']
-        self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
+        if (series == 'F1'):
+            self.series = 'F1'
+            # F1 Calendar ID
+            self.calendar_id = 'gkpqcb2iskomkm6tl3bo7fvat4@group.calendar.google.com'
+            # Get F1 schedule page
+            self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/2e274914-e1e0-4fdd-bf2f-d8a74c46068a'
+        if (series == 'F3'):
+            self.series = 'F3'
+            # F3 Calendar ID
+            self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
+            # Get F3 schedule page
+            self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
+
         self.UTC_tz = pytz.timezone('UTC')
-        # Get schedule page
-        # This must be changed manually if a new series is established
-        self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
+
         r = requests.get(self.xs_url)
         # Parse table to json object
         self.soup = [[cell.text or cell.img for cell in row("td")]
@@ -198,11 +208,11 @@ class Schedule:
         events = []
         for race in self.events_to_update:
             racenumber = str(race + 1)
-            summary = 'iFL AM - Round ' + \
+            summary = 'iFL ' + self.series + ' - Round ' + \
                 racenumber + ' - ' + self.event_info[race][1]
             location = self.event_info[race][2]
             description = '+++<br>cover="<a href="' + self.event_info[race][4] + '">' + self.event_info[race][4] + '</a>"<br>+++<br><br>Round ' + \
-                racenumber + ' of the iFL AM Championship<br>' + \
+                racenumber + ' of the iFL ' + self.series + ' Championship<br>' + \
                 self.event_info[race][3] + '<br><html-blob><u></u></html-blob>'
             event = {
                 'summary': summary,
@@ -246,9 +256,22 @@ class Schedule:
 
 
 # New Schedule object and do things
-schedule = Schedule()
+schedule = Schedule('F3')
 schedule.get_gcal_events()
-if schedule.gcal_events:
-    schedule.compare_schedules()
-else:
+try:
+    if schedule.gcal_events:
+        schedule.compare_schedules()
+    else:
+        schedule.create_gcal_events()
+except AttributeError:
+    schedule.create_gcal_events()
+
+schedule = Schedule('F1')
+schedule.get_gcal_events()
+try:
+    if schedule.gcal_events:
+        schedule.compare_schedules()
+    else:
+        schedule.create_gcal_events()
+except AttributeError:
     schedule.create_gcal_events()
