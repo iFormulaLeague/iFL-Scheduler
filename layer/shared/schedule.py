@@ -40,6 +40,7 @@ class Schedule:
                      for row in BeautifulSoup(r.text, 'html.parser')("tr")]
         # Init list of events needing to be updated
         self.events_to_update = []
+        self.events_to_create = []
         # extract info from soup
         self.extract_info()
 
@@ -165,37 +166,41 @@ class Schedule:
             times.append(newtime)
             times.append(endtime)
             self.times_iso.append(times)
-            # Compare time strings
-            if newtime != self.gcal_events[count][0]:
-                print('ITERATION: ', count, ' UPDATE ',
-                      newtime, self.gcal_events[count][0])
-                failed = 1
+            try:
+                # Compare time strings
+                if newtime != self.gcal_events[count][0]:
+                    print('ITERATION: ', count, ' UPDATE ',
+                          newtime, self.gcal_events[count][0])
+                    failed = 1
 
-            # Check for GP name
-            if x_race[1].lower() not in self.gcal_events[count][2].lower():
-                print('ITERATION: ', count, ' UPDATE ', x_race[1].lower())
-                failed = 1
+                # Check for GP name
+                if x_race[1].lower() not in self.gcal_events[count][2].lower():
+                    print('ITERATION: ', count, ' UPDATE ', x_race[1].lower())
+                    failed = 1
 
-            # Check locations match
-            if x_race[2].lower() not in self.gcal_events[count][4].lower():
-                print('ITERATION: ', count, ' UPDATE ', x_race[2].lower())
-                failed = 1
+                # Check locations match
+                if x_race[2].lower() not in self.gcal_events[count][4].lower():
+                    print('ITERATION: ', count, ' UPDATE ', x_race[2].lower())
+                    failed = 1
 
-            # Check race lengths match
-            if x_race[3].lower() not in self.gcal_events[count][3].lower():
-                print('ITERATION: ', count, ' UPDATE ', x_race[3].lower())
-                failed = 1
+                # Check race lengths match
+                if x_race[3].lower() not in self.gcal_events[count][3].lower():
+                    print('ITERATION: ', count, ' UPDATE ', x_race[3].lower())
+                    failed = 1
 
-            # Check images match
-            if x_race[4].lower() not in self.gcal_events[count][3].lower():
-                print('ITERATION: ', count, ' UPDATE ', x_race[4].lower())
-                failed = 1
+                # Check images match
+                if x_race[4].lower() not in self.gcal_events[count][3].lower():
+                    print('ITERATION: ', count, ' UPDATE ', x_race[4].lower())
+                    failed = 1
 
-            # Add to list of races that don't match, in other words where the Google Calendar is not up-to-date.
-            if failed:
-                self.events_to_update.append(count)
+                # Add to list of races that don't match, in other words where the Google Calendar is not up-to-date.
+                if failed:
+                    self.events_to_update.append(count)
 
-            count += 1
+                count += 1
+            except (IndexError):
+                self.events_to_create.append(count)
+                count += 1
 
         if self.events_to_update:
             print('Events needing an update: ', self.events_to_update)
@@ -203,10 +208,16 @@ class Schedule:
         else:
             print('No events needing an update.')
 
-    def build_gcal_events(self):
+        if self.events_to_create:
+            print('Events to be created: ', self.events_to_create)
+            self.create_gcal_events()
+        else:
+            print('No events needing to be created.')
+
+    def build_gcal_events(self, events_to_do):
         # Assemble Google Calendar events from XtremeScoring schedule information
         events = []
-        for race in self.events_to_update:
+        for race in events_to_do:
             racenumber = str(race + 1)
             summary = 'iFL ' + self.series + ' - Round ' + \
                 racenumber + ' - ' + self.event_info[race][1]
@@ -233,7 +244,7 @@ class Schedule:
     def update_gcal_events(self):
         # Update Google calendar events
         # Build new event
-        event = self.build_gcal_events()
+        event = self.build_gcal_events(self.events_to_update)
         for index in range(len(event)):
             # Get existing event
             existing_event = self.gcal_events_raw[index]
@@ -246,13 +257,13 @@ class Schedule:
     def create_gcal_events(self):
         # Create Google calendar events
         # Build an event
-        event = self.build_gcal_events()
+        event = self.build_gcal_events(self.events_to_create)
         for index in range(len(event)):
             # Create a gcal event
             service = build('calendar', 'v3', credentials=self.creds)
-            event = service.events().insert(
+            new_event = service.events().insert(
                 calendarId=self.calendar_id, body=event[index]).execute()
-            print('Event created: %s' % (event.get('htmlLink')))
+            print('Event created: %s' % (new_event.get('htmlLink')))
 
 
 # New Schedule object and do things
