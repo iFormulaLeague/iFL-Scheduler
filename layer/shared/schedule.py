@@ -16,20 +16,31 @@ from googleapiclient.errors import HttpError
 
 class Schedule:
 
-    def __init__(self):
+    def __init__(self, series):
         self.SCOPES = ['https://www.googleapis.com/auth/calendar.readonly',
                        'https://www.googleapis.com/auth/calendar']
-        self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
+        if (series == 'F1'):
+            self.series = 'F1'
+            # F1 Calendar ID
+            self.calendar_id = 'gkpqcb2iskomkm6tl3bo7fvat4@group.calendar.google.com'
+            # Get F1 schedule page
+            self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/2e274914-e1e0-4fdd-bf2f-d8a74c46068a'
+        if (series == 'F3'):
+            self.series = 'F3'
+            # F3 Calendar ID
+            self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
+            # Get F3 schedule page
+            self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
+
         self.UTC_tz = pytz.timezone('UTC')
-        # Get schedule page
-        # This must be changed manually if a new series is established
-        self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
+
         r = requests.get(self.xs_url)
         # Parse table to json object
         self.soup = [[cell.text or cell.img for cell in row("td")]
                      for row in BeautifulSoup(r.text, 'html.parser')("tr")]
         # Init list of events needing to be updated
         self.events_to_update = []
+        self.events_to_create = []
         # extract info from soup
         self.extract_info()
 
@@ -155,37 +166,41 @@ class Schedule:
             times.append(newtime)
             times.append(endtime)
             self.times_iso.append(times)
-            # Compare time strings
-            if newtime != self.gcal_events[count][0]:
-                print('ITERATION: ', count, ' UPDATE ',
-                      newtime, self.gcal_events[count][0])
-                failed = 1
+            try:
+                # Compare time strings
+                if newtime != self.gcal_events[count][0]:
+                    print('ITERATION: ', count, ' UPDATE ',
+                          newtime, self.gcal_events[count][0])
+                    failed = 1
 
-            # Check for GP name
-            if x_race[1].lower() not in self.gcal_events[count][2].lower():
-                print('ITERATION: ', count, ' UPDATE ', x_race[1].lower())
-                failed = 1
+                # Check for GP name
+                if x_race[1].lower() not in self.gcal_events[count][2].lower():
+                    print('ITERATION: ', count, ' UPDATE ', x_race[1].lower())
+                    failed = 1
 
-            # Check locations match
-            if x_race[2].lower() not in self.gcal_events[count][4].lower():
-                print('ITERATION: ', count, ' UPDATE ', x_race[2].lower())
-                failed = 1
+                # Check locations match
+                if x_race[2].lower() not in self.gcal_events[count][4].lower():
+                    print('ITERATION: ', count, ' UPDATE ', x_race[2].lower())
+                    failed = 1
 
-            # Check race lengths match
-            if x_race[3].lower() not in self.gcal_events[count][3].lower():
-                print('ITERATION: ', count, ' UPDATE ', x_race[3].lower())
-                failed = 1
+                # Check race lengths match
+                if x_race[3].lower() not in self.gcal_events[count][3].lower():
+                    print('ITERATION: ', count, ' UPDATE ', x_race[3].lower())
+                    failed = 1
 
-            # Check images match
-            if x_race[4].lower() not in self.gcal_events[count][3].lower():
-                print('ITERATION: ', count, ' UPDATE ', x_race[4].lower())
-                failed = 1
+                # Check images match
+                if x_race[4].lower() not in self.gcal_events[count][3].lower():
+                    print('ITERATION: ', count, ' UPDATE ', x_race[4].lower())
+                    failed = 1
 
-            # Add to list of races that don't match, in other words where the Google Calendar is not up-to-date.
-            if failed:
-                self.events_to_update.append(count)
+                # Add to list of races that don't match, in other words where the Google Calendar is not up-to-date.
+                if failed:
+                    self.events_to_update.append(count)
 
-            count += 1
+                count += 1
+            except (IndexError):
+                self.events_to_create.append(count)
+                count += 1
 
         if self.events_to_update:
             print('Events needing an update: ', self.events_to_update)
@@ -193,16 +208,22 @@ class Schedule:
         else:
             print('No events needing an update.')
 
-    def build_gcal_events(self):
+        if self.events_to_create:
+            print('Events to be created: ', self.events_to_create)
+            self.create_gcal_events()
+        else:
+            print('No events needing to be created.')
+
+    def build_gcal_events(self, events_to_do):
         # Assemble Google Calendar events from XtremeScoring schedule information
         events = []
-        for race in self.events_to_update:
+        for race in events_to_do:
             racenumber = str(race + 1)
-            summary = 'iFL AM - Round ' + \
+            summary = 'iFL ' + self.series + ' - Round ' + \
                 racenumber + ' - ' + self.event_info[race][1]
             location = self.event_info[race][2]
-            description = '+++<br>cover=" <a href="' + self.event_info[race][4] + '">' + self.event_info[race][4] + '</a>  "<br>+++<br><br>Round ' + \
-                racenumber + ' of the iFL AM Championship<br>' + \
+            description = '+++<br>cover="<a href="' + self.event_info[race][4] + '">' + self.event_info[race][4] + '</a>"<br>+++<br><br>Round ' + \
+                racenumber + ' of the iFL ' + self.series + ' Championship<br>' + \
                 self.event_info[race][3] + '<br><html-blob><u></u></html-blob>'
             event = {
                 'summary': summary,
@@ -223,7 +244,7 @@ class Schedule:
     def update_gcal_events(self):
         # Update Google calendar events
         # Build new event
-        event = self.build_gcal_events()
+        event = self.build_gcal_events(self.events_to_update)
         for index in range(len(event)):
             # Get existing event
             existing_event = self.gcal_events_raw[index]
@@ -236,19 +257,33 @@ class Schedule:
     def create_gcal_events(self):
         # Create Google calendar events
         # Build an event
-        event = self.build_gcal_events()
+        event = self.build_gcal_events(self.events_to_create)
         for index in range(len(event)):
             # Create a gcal event
             service = build('calendar', 'v3', credentials=self.creds)
-            event = service.events().insert(
+            new_event = service.events().insert(
                 calendarId=self.calendar_id, body=event[index]).execute()
-            print('Event created: %s' % (event.get('htmlLink')))
+            print('Event created: %s' % (new_event.get('htmlLink')))
 
 
 # New Schedule object and do things
-schedule = Schedule()
+schedule = Schedule('F3')
 schedule.get_gcal_events()
-if schedule.gcal_events:
-    schedule.compare_schedules()
-else:
+try:
+    if schedule.gcal_events:
+        schedule.compare_schedules()
+    else:
+        schedule.create_gcal_events()
+except AttributeError:
+    schedule.create_gcal_events()
+
+# Create a schedule object for a second series.
+schedule = Schedule('F1')
+schedule.get_gcal_events()
+try:
+    if schedule.gcal_events:
+        schedule.compare_schedules()
+    else:
+        schedule.create_gcal_events()
+except AttributeError:
     schedule.create_gcal_events()
