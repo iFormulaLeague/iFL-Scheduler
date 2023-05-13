@@ -14,6 +14,26 @@ Google Calendar API
     - OAuth Credentials (JSON format, save in layer/shared/credentials.json)
 ```
 
+### Credentials
+
+Create layer/shared/credentials.json, filling in the client_id, project_id, and client_secret as relevant to your Google Cloud Project.
+
+```
+{
+    "installed": {
+        "client_id": "somelong-string.apps.googleusercontent.com",
+        "project_id": "ifl-scheduler",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_secret": "secretstringgoeshere",
+        "redirect_uris": [
+            "http://localhost"
+        ]
+    }
+}
+```
+
 ### First Run
 
 On first run with a new token, you will be required to authenticate via a webbrowser.
