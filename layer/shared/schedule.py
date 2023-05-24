@@ -47,6 +47,7 @@ class Schedule:
         self.events_to_create = []
         # extract info from soup
         self.extract_info()
+        self.new_events_from_xtreme = list(range(len(self.event_info)))
 
     def extract_info(self):
         # Extract full event info
@@ -70,10 +71,10 @@ class Schedule:
             utc_dt = self.UTC_tz.localize(date_time_obj)
 
             # Grand Prix name from main
-            gp = re.search(r'\n(\w+ GP|\w+ \w+ GP)\n', main)
+            gp = re.search(r'\n(\w+ GRAND PRIX|\w+ \w+ GRAND PRIX|EMILIA-ROMAGNA GRAND PRIX)\n', main)
 
             # Circuit name from main
-            circuit = re.search(r'GP\n(.*?)\n', main)
+            circuit = re.search(r'GRAND PRIX\n(.*?)\n', main)
 
             # Race Length from extra
             length = re.search(r'Race\sLength:(.*)\n\n\n\n\n', extra)
@@ -202,7 +203,7 @@ class Schedule:
                     self.events_to_update.append(count)
 
                 count += 1
-            except (IndexError):
+            except (IndexError,AttributeError):
                 self.events_to_create.append(count)
                 count += 1
 
@@ -273,21 +274,9 @@ class Schedule:
 # New Schedule object and do things
 schedule = Schedule('F3')
 schedule.get_gcal_events()
-try:
-    if schedule.gcal_events:
-        schedule.compare_schedules()
-    else:
-        schedule.create_gcal_events()
-except AttributeError:
-    schedule.create_gcal_events()
+schedule.compare_schedules()
 
 # Create a schedule object for a second series.
 schedule = Schedule('F1')
 schedule.get_gcal_events()
-try:
-    if schedule.gcal_events:
-        schedule.compare_schedules()
-    else:
-        schedule.create_gcal_events()
-except AttributeError:
-    schedule.create_gcal_events()
+schedule.compare_schedules()
