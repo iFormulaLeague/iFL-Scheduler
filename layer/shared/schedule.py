@@ -21,12 +21,16 @@ class Schedule:
                        'https://www.googleapis.com/auth/calendar']
         if (series == 'F1'):
             self.series = 'F1'
+            # F1 Series Duration (Hours)
+            self.delta = 3
             # F1 Calendar ID
             self.calendar_id = 'gkpqcb2iskomkm6tl3bo7fvat4@group.calendar.google.com'
             # Get F1 schedule page
             self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/2e274914-e1e0-4fdd-bf2f-d8a74c46068a'
         if (series == 'F3'):
             self.series = 'F3'
+            # F1 Series Duration (Hours)
+            self.delta = 2.5
             # F3 Calendar ID
             self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
             # Get F3 schedule page
@@ -43,6 +47,7 @@ class Schedule:
         self.events_to_create = []
         # extract info from soup
         self.extract_info()
+        self.new_events_from_xtreme = list(range(len(self.event_info)))
 
     def extract_info(self):
         # Extract full event info
@@ -66,10 +71,10 @@ class Schedule:
             utc_dt = self.UTC_tz.localize(date_time_obj)
 
             # Grand Prix name from main
-            gp = re.search(r'\n(\w+ GP|\w+ \w+ GP)\n', main)
+            gp = re.search(r'\n(\w+ GRAND PRIX|\w+ \w+ GRAND PRIX|EMILIA-ROMAGNA GRAND PRIX)\n', main)
 
             # Circuit name from main
-            circuit = re.search(r'GP\n(.*?)\n', main)
+            circuit = re.search(r'GRAND PRIX\n(.*?)\n', main)
 
             # Race Length from extra
             length = re.search(r'Race\sLength:(.*)\n\n\n\n\n', extra)
@@ -160,7 +165,7 @@ class Schedule:
             # Derive endtime and convert to isoformat
             # endtime timedelta must be adjusted manually based on series event duration.
             # This is a limitation due to data availablility from the detailed schedule view in XS.
-            endtime = x_race[0] + timedelta(hours=2.5)
+            endtime = x_race[0] + timedelta(hours=self.delta)
             newtime = x_race[0].isoformat()
             endtime = endtime.isoformat()
             times.append(newtime)
@@ -198,7 +203,7 @@ class Schedule:
                     self.events_to_update.append(count)
 
                 count += 1
-            except (IndexError):
+            except (IndexError,AttributeError):
                 self.events_to_create.append(count)
                 count += 1
 
@@ -269,21 +274,9 @@ class Schedule:
 # New Schedule object and do things
 schedule = Schedule('F3')
 schedule.get_gcal_events()
-try:
-    if schedule.gcal_events:
-        schedule.compare_schedules()
-    else:
-        schedule.create_gcal_events()
-except AttributeError:
-    schedule.create_gcal_events()
+schedule.compare_schedules()
 
 # Create a schedule object for a second series.
 schedule = Schedule('F1')
 schedule.get_gcal_events()
-try:
-    if schedule.gcal_events:
-        schedule.compare_schedules()
-    else:
-        schedule.create_gcal_events()
-except AttributeError:
-    schedule.create_gcal_events()
+schedule.compare_schedules()
