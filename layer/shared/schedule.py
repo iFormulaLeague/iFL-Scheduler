@@ -38,6 +38,7 @@ class Schedule:
 
         self.UTC_tz = pytz.timezone('UTC')
 
+        # Scrape Xtremescoring Schedule
         r = requests.get(self.xs_url)
         # Parse table to json object
         self.soup = [[cell.text or cell.img for cell in row("td")]
@@ -47,7 +48,6 @@ class Schedule:
         self.events_to_create = []
         # extract info from soup
         self.extract_info()
-        self.new_events_from_xtreme = list(range(len(self.event_info)))
 
     def extract_info(self):
         # Extract full event info
@@ -71,13 +71,13 @@ class Schedule:
             utc_dt = self.UTC_tz.localize(date_time_obj)
 
             # Grand Prix name from main
-            gp = re.search(r'\n(\w+ GRAND PRIX|\w+ \w+ GRAND PRIX|EMILIA-ROMAGNA GRAND PRIX)\n', main)
+            gp = re.search(r'\n.+?\n([\w\d -\/]+)\n', main)
 
             # Circuit name from main
-            circuit = re.search(r'GRAND PRIX\n(.*?)\n', main)
+            circuit = re.search(r'\n.+?\n.+?\n([\w\d -\/]+)\n', main)
 
             # Race Length from extra
-            length = re.search(r'Race\sLength:(.*)\n\n\n\n\n', extra)
+            length = re.search(r'Race\sLength:(.*?)\n', extra)
 
             # Append to list
             event.append(utc_dt)
