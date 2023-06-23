@@ -35,6 +35,14 @@ class Schedule:
             self.calendar_id = 's1pshnma6bbvuv9lo628cv4heo@group.calendar.google.com'
             # Get F3 schedule page
             self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
+        if (series == 'F4'):
+            self.series = 'F4 Developmental'
+            # F4 Series Duration (Hours)
+            self.delta = 2.5
+            # F4 Calendar ID
+            self.calendar_id = '3508c492264665903c401c588e716972f95c2f473d9edb69ff66d06882f17df5@group.calendar.google.com'
+            # Get F4 schedule page
+            self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/4e9f4c0e-7119-463d-afbf-0347d32bcf26'
 
         self.UTC_tz = pytz.timezone('UTC')
 
@@ -166,7 +174,13 @@ class Schedule:
             # endtime timedelta must be adjusted manually based on series event duration.
             # This is a limitation due to data availablility from the detailed schedule view in XS.
             endtime = x_race[0] + timedelta(hours=self.delta)
-            newtime = x_race[0].isoformat()
+            newtime = x_race[0]
+            # F4 follows exact format of F3 but is run at a different time, so 
+            if (self.series == "F4 Developmental"):
+                endtime = endtime + timedelta(days=-1,hours=3)
+                newtime = newtime + timedelta(days=-1,hours=3)
+            # convert to isoformatted strings and append to arrays so they can be used in comparison and event creation
+            newtime = newtime.isoformat()
             endtime = endtime.isoformat()
             times.append(newtime)
             times.append(endtime)
@@ -278,5 +292,10 @@ schedule.compare_schedules()
 
 # Create a schedule object for a second series.
 schedule = Schedule('F1')
+schedule.get_gcal_events()
+schedule.compare_schedules()
+
+# Create a schedule object for a third series.
+schedule = Schedule('F4')
 schedule.get_gcal_events()
 schedule.compare_schedules()
