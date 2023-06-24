@@ -124,7 +124,12 @@ class Schedule:
         try:
             # Call the Calendar API
             # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-            seasonstart = self.event_info[0][0].strftime('%Y-%m-%dT%H:%M:%SZ')
+            if (self.series == "F4 Developmental"):
+                seasonstart = self.event_info[0][0] + timedelta(days=-1,hours=3)
+                seasonstart = seasonstart.strftime('%Y-%m-%dT%H:%M:%SZ')
+            else:
+                seasonstart = self.event_info[0][0].strftime('%Y-%m-%dT%H:%M:%SZ')
+                
             print('Getting events from ' + self.series + ' Season Start')
             events_result = service.events().list(calendarId=self.calendar_id,
                                                   timeMin=seasonstart, singleEvents=True, orderBy='startTime').execute()
