@@ -20,13 +20,13 @@ class Schedule:
         self.SCOPES = ['https://www.googleapis.com/auth/calendar.readonly',
                        'https://www.googleapis.com/auth/calendar']
         if (series == 'F1'):
-            self.series = 'F1'
+            self.series = 'SF'
             # F1 Series Duration (Hours)
             self.delta = 3
             # F1 Calendar ID
             self.calendar_id = 'gkpqcb2iskomkm6tl3bo7fvat4@group.calendar.google.com'
             # Get F1 schedule page
-            self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/2e274914-e1e0-4fdd-bf2f-d8a74c46068a'
+            self.xs_url = 'https://app.xtremescoring.com/api/Embedded/CurrentScheduleDetailed/b21848d5-4f6e-423c-94d7-6c37ab229827/ca5b725b-f814-427e-9352-4cc2b6e8ec4d'
         if (series == 'F3'):
             self.series = 'F3'
             # F1 Series Duration (Hours)
@@ -301,6 +301,6 @@ schedule.get_gcal_events()
 schedule.compare_schedules()
 
 # Create a schedule object for a third series.
-schedule = Schedule('F4')
-schedule.get_gcal_events()
-schedule.compare_schedules()
+#schedule = Schedule('F4')
+#schedule.get_gcal_events()
+#schedule.compare_schedules()
